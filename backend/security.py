@@ -1,5 +1,4 @@
 import jwt
-import hashlib
 import datetime
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -11,8 +10,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 def _prepare_password(password: str) -> str:
-    """Pre-hash the password with SHA-256 to avoid bcrypt's 72-byte hard limit."""
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    """Truncate to 72 bytes to avoid bcrypt's hard limit (bcrypt >= 4.0)."""
+    encoded = password.encode("utf-8")
+    return encoded[:72].decode("utf-8", errors="ignore")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(_prepare_password(plain_password), hashed_password)
