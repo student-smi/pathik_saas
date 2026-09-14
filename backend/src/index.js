@@ -15,8 +15,14 @@ const exportRoutes = require('./routes/export.routes');
 const { errorHandler } = require('./middleware/error.middleware');
 
 const app = express();
-const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
+
+// Prisma singleton — prevents "too many connections" in serverless
+const globalForPrisma = global;
+if (!globalForPrisma.prisma) {
+  globalForPrisma.prisma = new PrismaClient();
+}
+const prisma = globalForPrisma.prisma;
 
 // ── Middleware ────────────────────────────────────────────────
 const allowedOrigins = [
@@ -50,20 +56,21 @@ app.use('/api/export', exportRoutes);
 // ── Error handler ─────────────────────────────────────────────
 app.use(errorHandler);
 
-// ── Start ─────────────────────────────────────────────────────
-async function main() {
-  await prisma.$connect();
-  console.log('✅ Database connected');
-
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`   Environment: ${process.env.NODE_ENV}`);
+// ── Start (local only — Vercel handles serverless invocation) ──
+if (require.main === module) {
+  async function main() {
+    await prisma.$connect();
+    console.log('✅ Database connected');
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log(`   Environment: ${process.env.NODE_ENV}`);
+    });
+  }
+  main().catch((err) => {
+    console.error('❌ Startup error:', err);
+    process.exit(1);
   });
 }
 
-main().catch((err) => {
-  console.error('❌ Startup error:', err);
-  process.exit(1);
-});
-
+// Export for Vercel serverless
 module.exports = app;
