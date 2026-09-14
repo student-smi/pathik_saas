@@ -1,0 +1,13 @@
+{
+  "name": "water-bill-management",
+  "version": "1.0.0",
+  "description": "Society Water Bill Management System",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "db:push": "cd backend && npx prisma db push",
+    "db:seed": "cd backend && node prisma/seed.js",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "test:acceptance": "node acceptance-test.js"
+  }
+}

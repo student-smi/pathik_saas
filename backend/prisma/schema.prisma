@@ -1,0 +1,155 @@
+// Society Water Bill Management System - Prisma Schema (SQLite)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USER AUTH ─────────────────────────────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("RESIDENT")   // "ADMIN" | "RESIDENT"
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  adminSocieties Society[]  @relation("SocietyAdmin")
+  resident       Resident?
+
+  @@map("users")
+}
+
+// ─── SOCIETY ────────────────────────────────────────────────────────────────
+model Society {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  city      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  adminId String
+  admin   User   @relation("SocietyAdmin", fields: [adminId], references: [id])
+
+  houses       House[]
+  monthlyBills MonthlyBill[]
+  calcConfigs  CalcConfig[]
+
+  @@map("societies")
+}
+
+// ─── HOUSE ──────────────────────────────────────────────────────────────────
+model House {
+  id        String   @id @default(cuid())
+  houseNo   String
+  floor     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  societyId String
+  society   Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
+
+  resident    Resident?
+  billEntries BillEntry[]
+
+  @@unique([societyId, houseNo])
+  @@map("houses")
+}
+
+// ─── RESIDENT ───────────────────────────────────────────────────────────────
+model Resident {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  houseId String @unique
+  house   House  @relation(fields: [houseId], references: [id], onDelete: Cascade)
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("residents")
+}
+
+// ─── MONTHLY BILL ────────────────────────────────────────────────────────────
+model MonthlyBill {
+  id          String    @id @default(cuid())
+  year        Int
+  month       Int
+  status      String    @default("DRAFT")   // "DRAFT" | "PUBLISHED" | "CORRECTED"
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+
+  societyId String
+  society   Society @relation(fields: [societyId], references: [id], onDelete: Cascade)
+
+  entries BillEntry[]
+
+  @@unique([societyId, year, month])
+  @@map("monthly_bills")
+}
+
+// ─── BILL ENTRY ──────────────────────────────────────────────────────────────
+model BillEntry {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  monthlyBillId String
+  monthlyBill   MonthlyBill @relation(fields: [monthlyBillId], references: [id], onDelete: Cascade)
+
+  houseId String
+  house   House  @relation(fields: [houseId], references: [id], onDelete: Cascade)
+
+  // ── Core meter readings ──────────────────────────────────────
+  hv           Float    // H.V – previous reading (auto-filled from last month's A.V)
+  av           Float?   // A.V – current reading (entered by admin)
+  hvAutoFilled Boolean  @default(true)
+
+  // ── Derived calculations ─────────────────────────────────────
+  unit  Float?           // A.V - H.V  (can be negative)
+  falo  Float?           // UNIT × 5
+  v     Float   @default(600)
+  total Float?           // V + FALO
+
+  // ── Configurable/future fields ───────────────────────────────
+  aa    Float?
+  b     Float?
+  dan   Float?
+  wch   Float?
+
+  // ── Flags ────────────────────────────────────────────────────
+  isNegative Boolean @default(false)
+  isManualHv Boolean @default(false)
+
+  @@unique([monthlyBillId, houseId])
+  @@map("bill_entries")
+}
+
+// ─── CALCULATION CONFIG ──────────────────────────────────────────────────────
+model CalcConfig {
+  id          String   @id @default(cuid())
+  societyId   String
+  society     Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
+
+  fieldName   String
+  formula     String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([societyId, fieldName])
+  @@map("calc_configs")
+}

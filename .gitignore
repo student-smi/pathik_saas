@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Environment variables — NEVER push to GitHub!
+.env
+.env.local
+.env.production
+
+# SQLite database (old — no longer used)
+*.db
+*.db-journal
+
+# Build output
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/migrations/
+
+# Logs
+*.log
+logs/
