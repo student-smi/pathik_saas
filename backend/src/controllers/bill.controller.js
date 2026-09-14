@@ -158,13 +158,9 @@ const syncMissingHouses = async (req, res, next) => {
       return res.json({ message: 'All houses already present', added: [] });
     }
 
-    // For each missing house, find prev month AV
-    const { previousMonth } = require('../services/bill.service');
-    const prev = previousMonth(bill.year, bill.month);
-    const prevBill = await prisma.monthlyBill.findUnique({
-      where: { societyId_year_month: { societyId: bill.societyId, year: prev.year, month: prev.month } },
-      include: { entries: true }
-    });
+    // For each missing house, find prev bill AV
+    const { findPreviousBill } = require('../services/bill.service');
+    const prevBill = await findPreviousBill(bill.societyId, bill.year, bill.month);
 
     const added = [];
     for (const house of missing) {

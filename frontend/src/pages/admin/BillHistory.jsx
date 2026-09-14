@@ -3,7 +3,17 @@ import { Link } from 'react-router-dom'
 import api from '../../api/axios'
 import { History, FileText, Download, Eye } from 'lucide-react'
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+function getPeriodName(m) {
+  const map = {
+    1: 'Jan - Feb', 2: 'Jan - Feb',
+    3: 'Mar - Apr', 4: 'Mar - Apr',
+    5: 'May - Jun', 6: 'May - Jun',
+    7: 'Jul - Aug', 8: 'Jul - Aug',
+    9: 'Sep - Oct', 10: 'Sep - Oct',
+    11: 'Nov - Dec', 12: 'Nov - Dec'
+  }
+  return map[m] || `Period ${m}`
+}
 
 function StatusBadge({ status }) {
   const map = { DRAFT: 'badge-draft', PUBLISHED: 'badge-published', CORRECTED: 'badge-corrected' }
@@ -54,7 +64,7 @@ export default function BillHistory() {
                 <FileText className="w-5 h-5 text-primary-600" />
               </div>
               <div>
-                <p className="font-semibold text-gray-900">{MONTHS[b.month - 1]} {b.year}</p>
+                <p className="font-semibold text-gray-900">{getPeriodName(b.month)} {b.year}</p>
                 <p className="text-xs text-gray-500">{b._count?.entries || 0} houses</p>
               </div>
             </div>

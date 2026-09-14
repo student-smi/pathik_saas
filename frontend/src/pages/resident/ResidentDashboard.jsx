@@ -4,10 +4,17 @@ import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
 import { Droplets, AlertTriangle, ChevronRight, Clock } from 'lucide-react'
 
-const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December'
-]
+function getPeriodName(m) {
+  const map = {
+    1: 'January - February', 2: 'January - February',
+    3: 'March - April', 4: 'March - April',
+    5: 'May - June', 6: 'May - June',
+    7: 'July - August', 8: 'July - August',
+    9: 'September - October', 10: 'September - October',
+    11: 'November - December', 12: 'November - December'
+  }
+  return map[m] || `Period ${m}`
+}
 
 function fmt(val) {
   if (val === null || val === undefined) return '—'
@@ -23,13 +30,13 @@ function BillCard({ entry, isCurrent }) {
       {isCurrent && (
         <div className="flex items-center gap-2 mb-3">
           <span className="badge-published">Current Bill</span>
-          <span className="text-xs text-gray-500">{MONTHS[m.month - 1]} {m.year}</span>
+          <span className="text-xs text-gray-500 font-medium">{getPeriodName(m.month)} {m.year}</span>
           {m.status === 'CORRECTED' && <span className="badge-corrected">Corrected</span>}
         </div>
       )}
       {!isCurrent && (
         <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-gray-700">{MONTHS[m.month - 1]} {m.year}</span>
+          <span className="font-semibold text-gray-700">{getPeriodName(m.month)} {m.year}</span>
           {m.status === 'CORRECTED' && <span className="badge-corrected">Corrected</span>}
         </div>
       )}

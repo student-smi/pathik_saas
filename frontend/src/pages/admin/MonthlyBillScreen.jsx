@@ -7,10 +7,26 @@ import {
   RefreshCw, Info, ChevronDown, Save, Plus
 } from 'lucide-react'
 
-const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December'
+const BIMONTHLY_PERIODS = [
+  { value: 2, label: 'Jan - Feb' },
+  { value: 4, label: 'Mar - Apr' },
+  { value: 6, label: 'May - Jun' },
+  { value: 8, label: 'Jul - Aug' },
+  { value: 10, label: 'Sep - Oct' },
+  { value: 12, label: 'Nov - Dec' }
 ]
+
+function getPeriodName(m) {
+  const map = {
+    1: 'Jan - Feb', 2: 'Jan - Feb',
+    3: 'Mar - Apr', 4: 'Mar - Apr',
+    5: 'May - Jun', 6: 'May - Jun',
+    7: 'Jul - Aug', 8: 'Jul - Aug',
+    9: 'Sep - Oct', 10: 'Sep - Oct',
+    11: 'Nov - Dec', 12: 'Nov - Dec'
+  }
+  return map[m] || `Period ${m}`
+}
 
 function StatusBadge({ status }) {
   const map = { DRAFT: 'badge-draft', PUBLISHED: 'badge-published', CORRECTED: 'badge-corrected' }
@@ -311,9 +327,9 @@ export default function MonthlyBillScreen() {
             </select>
           </div>
           <div>
-            <label className="label">Month</label>
-            <select className="input w-36" value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}>
-              {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+            <label className="label">Billing Period</label>
+            <select className="input w-44" value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}>
+              {BIMONTHLY_PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
           </div>
 
@@ -375,7 +391,7 @@ export default function MonthlyBillScreen() {
       {!loading && !bill && selectedSociety && (
         <div className="card text-center py-12">
           <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-600 font-medium">No bill for {MONTHS[selectedMonth - 1]} {selectedYear}</p>
+          <p className="text-gray-600 font-medium">No bill for {getPeriodName(selectedMonth)} {selectedYear}</p>
           <p className="text-gray-400 text-sm mt-1">Click "Create Bill" to start. H.V will be auto-filled from last month.</p>
         </div>
       )}
@@ -385,7 +401,7 @@ export default function MonthlyBillScreen() {
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
             <StatusBadge status={bill.status} />
-            <span className="text-sm text-gray-600">{MONTHS[bill.month - 1]} {bill.year}</span>
+            <span className="text-sm text-gray-600 font-semibold">{getPeriodName(bill.month)} {bill.year}</span>
           </div>
           <span className="text-sm text-gray-500">
             {completedCount}/{totalCount} entries complete

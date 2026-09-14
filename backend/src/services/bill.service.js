@@ -18,19 +18,47 @@ const prisma = new PrismaClient();
  * Get the name of a month+year for display.
  */
 function monthLabel(year, month) {
-  const months = [
-    'January','February','March','April','May','June',
-    'July','August','September','October','November','December'
-  ];
-  return `${months[month - 1]} ${year}`;
+  const bimonthlyLabels = {
+    1: 'January - February', 2: 'January - February',
+    3: 'March - April', 4: 'March - April',
+    5: 'May - June', 6: 'May - June',
+    7: 'July - August', 8: 'July - August',
+    9: 'September - October', 10: 'September - October',
+    11: 'November - December', 12: 'November - December'
+  };
+  return `${bimonthlyLabels[month] || 'Period'} ${year}`;
 }
 
 /**
- * Get the previous month's year and month number.
+ * Get the previous bimonthly period's year and month number.
  */
 function previousMonth(year, month) {
-  if (month === 1) return { year: year - 1, month: 12 };
-  return { year, month: month - 1 };
+  if (month <= 2) return { year: year - 1, month: 12 };
+  return { year, month: month - 2 };
+}
+
+/**
+ * Find the most recent previous bill before the specified year and month for a society.
+ */
+async function findPreviousBill(societyId, year, month) {
+  return await prisma.monthlyBill.findFirst({
+    where: {
+      societyId,
+      OR: [
+        { year: { lt: year } },
+        { year: year, month: { lt: month } }
+      ]
+    },
+    orderBy: [
+      { year: 'desc' },
+      { month: 'desc' }
+    ],
+    include: {
+      entries: {
+        include: { house: true }
+      }
+    }
+  });
 }
 
 /**
@@ -67,22 +95,21 @@ async function createMonthlyBill(societyId, year, month) {
     throw err;
   }
 
-  // Find previous month's bill
-  const prev = previousMonth(year, month);
-  const prevBill = await prisma.monthlyBill.findUnique({
-    where: { societyId_year_month: { societyId, year: prev.year, month: prev.month } },
-    include: {
-      entries: {
-        include: { house: true }
-      }
-    }
-  });
+  // Find previous bimonthly bill (most recent prior bill)
+  const prevBill = await findPreviousBill(societyId, year, month);
 
   // Build a map: houseId → previous A.V
   const prevAvMap = {};
   let hasPrevBill = false;
 
   if (prevBill) {
+    hasPrevBill = true;
+    for (const entry of prevBill.entries) {
+      if (entry.av !== null && entry.av !== undefined) {
+        prevAvMap[entry.houseId] = entry.av;
+      }
+    }
+  }
     hasPrevBill = true;
     for (const entry of prevBill.entries) {
       if (entry.av !== null && entry.av !== undefined) {
@@ -139,7 +166,7 @@ async function createMonthlyBill(societyId, year, month) {
   return {
     bill: fullBill,
     hasPrevBill,
-    prevMonth: monthLabel(prev.year, prev.month),
+    prevMonth: prevBill ? monthLabel(prevBill.year, prevBill.month) : '',
     missingPrevHouses: hasPrevBill
       ? houses
           .filter(h => prevAvMap[h.id] === undefined)
@@ -174,12 +201,8 @@ async function addHouseToDraftBills(houseId, societyId) {
     });
     if (exists) continue;
 
-    // Pichhle mahine ka AV dhundo
-    const prev = previousMonth(bill.year, bill.month);
-    const prevBill = await prisma.monthlyBill.findUnique({
-      where: { societyId_year_month: { societyId, year: prev.year, month: prev.month } },
-      include: { entries: { where: { houseId } } }
-    });
+    // Pichhle bill ka AV dhundo
+    const prevBill = await findPreviousBill(societyId, bill.year, bill.month);
 
     const prevEntry = prevBill?.entries?.[0];
     const hvAutoFilled = !!(prevEntry && prevEntry.av !== null);
