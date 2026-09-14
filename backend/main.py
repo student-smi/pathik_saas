@@ -1,6 +1,8 @@
+import os
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from config import FRONTEND_URL, PORT
+from config import FRONTEND_URL
 from routers import auth, societies, houses, bills, portal, exports
 
 app = FastAPI(
@@ -10,16 +12,9 @@ app = FastAPI(
 )
 
 # CORS Middleware
-origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    FRONTEND_URL,
-    "https://pathik-saas-frontend.vercel.app"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all for seamless Vercel integration
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,5 +38,5 @@ def root():
     }
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=True)
+    port = int(os.getenv("PORT", 5000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
