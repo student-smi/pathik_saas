@@ -1,10 +1,9 @@
 import axios from 'axios'
 
 const api = axios.create({
-  // In production: set VITE_API_URL to your Render backend URL
-  // In development: Vite proxy handles /api → localhost:5000
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  headers: { 'Content-Type': 'application/json' }
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 20000 // 20 sec timeout to give Render cold start time to respond without immediate network crash
 })
 
 // Attach JWT token to every request
@@ -23,7 +22,9 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      window.location.href = '/login'
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(err)
   }
