@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import FRONTEND_URL
-from routers import auth, societies, houses, bills, portal, exports
+from routers import auth, societies, houses, bills, portal, exports, residents
 
 app = FastAPI(
     title="Pathik Society Water Bill SaaS API (FastAPI)",
@@ -24,6 +24,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(societies.router)
 app.include_router(houses.router)
+app.include_router(residents.router)
 app.include_router(bills.router)
 app.include_router(portal.router)
 app.include_router(exports.router)

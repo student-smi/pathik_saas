@@ -1,4 +1,5 @@
 import jwt
+import hashlib
 import datetime
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -9,11 +10,15 @@ from database import supabase
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
+def _prepare_password(password: str) -> str:
+    """Pre-hash the password with SHA-256 to avoid bcrypt's 72-byte hard limit."""
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(_prepare_password(plain_password), hashed_password)
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return pwd_context.hash(_prepare_password(password))
 
 def create_access_token(data: dict, expires_delta: datetime.timedelta = None) -> str:
     to_encode = data.copy()

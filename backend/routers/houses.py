@@ -45,18 +45,16 @@ def create_house(data: CreateHouseRequest, admin: dict = Depends(require_admin))
 
     house = h_res.data[0]
 
-    # Create Resident if details provided
+    # Create Resident if details provided (legacy — prefer POST /api/residents)
     if data.residentName and data.residentEmail:
         email = data.residentEmail.lower().strip()
-        # Check user
         u_exist = supabase.table("users").select("id").eq("email", email).execute()
         if u_exist.data:
             user_id = u_exist.data[0]["id"]
         else:
-            default_pwd = hash_password("Resident@123")
             u_res = supabase.table("users").insert({
                 "email": email,
-                "passwordHash": default_pwd,
+                "passwordHash": hash_password("Resident@123"),
                 "role": "RESIDENT"
             }).execute()
             user_id = u_res.data[0]["id"]
