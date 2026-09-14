@@ -9,16 +9,11 @@ from database import supabase
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
-def _prepare_password(password: str) -> str:
-    """Truncate to 72 bytes to avoid bcrypt's hard limit (bcrypt >= 4.0)."""
-    encoded = password.encode("utf-8")
-    return encoded[:72].decode("utf-8", errors="ignore")
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(_prepare_password(plain_password), hashed_password)
+    return pwd_context.verify(plain_password, hashed_password)
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(_prepare_password(password))
+    return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: datetime.timedelta = None) -> str:
     to_encode = data.copy()
