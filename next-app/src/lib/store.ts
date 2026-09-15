@@ -347,8 +347,8 @@ export function createSupabaseBillStore(supabase: SupabaseClient): BillStore {
       const payload: any = {}
       if ('av' in update) payload.av = update.av
       if ('hv' in update) payload.hv = update.hv
-      if ('hvAutoFilled' in update) { payload.hvAutoFilled = update.hvAutoFilled; payload.hv_auto_filled = update.hvAutoFilled }
-      if ('isManualHv' in update) { payload.isManualHv = update.isManualHv; payload.is_manual_hv = update.isManualHv }
+      if ('hvAutoFilled' in update) payload.hvAutoFilled = update.hvAutoFilled
+      if ('isManualHv' in update) payload.isManualHv = update.isManualHv
       if ('unit' in update) payload.unit = update.unit
       if ('falo' in update) payload.falo = update.falo
       if ('v' in update) payload.v = update.v
@@ -357,7 +357,7 @@ export function createSupabaseBillStore(supabase: SupabaseClient): BillStore {
       if ('b' in update) payload.b = update.b
       if ('dan' in update) payload.dan = update.dan
       if ('wch' in update) payload.wch = update.wch
-      if ('isNegative' in update) { payload.isNegative = update.isNegative; payload.is_negative = update.isNegative }
+      if ('isNegative' in update) payload.isNegative = update.isNegative
 
       const { data, error } = await supabase.from('bill_entries').update(payload).eq('id', entryId).select().single()
       if (error || !data) throw new Error(error?.message || 'Update failed')
