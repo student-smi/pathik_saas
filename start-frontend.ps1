@@ -1,3 +1,3 @@
-Write-Host "🎨 Starting Water Bill Frontend..." -ForegroundColor Cyan
-Set-Location "$PSScriptRoot\frontend"
-npx vite
+Write-Host "🎨 Starting Water Bill Next.js Frontend (http://localhost:3000)..." -ForegroundColor Cyan
+Set-Location "$PSScriptRoot\next-app"
+npm run dev
