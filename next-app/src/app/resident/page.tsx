@@ -49,7 +49,7 @@ function BillCard({ entry, isCurrent }: BillCardProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3">
         {[
           { label: 'H.V', value: fmt(entry.hv) },
           { label: 'A.V', value: fmt(entry.av) },
@@ -58,9 +58,9 @@ function BillCard({ entry, isCurrent }: BillCardProps) {
           { label: 'FALO', value: fmt(entry.falo), negative: isNeg },
           { label: 'TOTAL', value: fmt(entry.total), highlight: true, negative: isNeg },
         ].map(({ label, value, highlight, negative }) => (
-          <div key={label} className={`rounded-lg p-3 text-center ${highlight ? (negative ? 'bg-red-100' : 'bg-primary-100') : 'bg-white border border-gray-100'}`}>
-            <p className="text-xs text-gray-500 mb-0.5">{label}</p>
-            <p className={`text-lg font-bold ${highlight ? (negative ? 'text-red-700' : 'text-primary-800') : negative && (label === 'UNIT' || label === 'FALO') ? 'text-red-600' : 'text-gray-900'}`}>
+          <div key={label} className={`rounded-xl p-2.5 sm:p-3 text-center transition-all ${highlight ? (negative ? 'bg-red-100 border border-red-200' : 'bg-primary-100 border border-primary-200') : 'bg-white border border-gray-100 shadow-sm'}`}>
+            <p className="text-[11px] sm:text-xs text-gray-500 font-semibold mb-0.5">{label}</p>
+            <p className={`text-base sm:text-lg font-bold ${highlight ? (negative ? 'text-red-700' : 'text-primary-800') : negative && (label === 'UNIT' || label === 'FALO') ? 'text-red-600' : 'text-gray-900'}`}>
               {value}
             </p>
           </div>

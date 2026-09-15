@@ -462,57 +462,57 @@ export default function MonthlyBillScreen() {
         <p className="text-gray-500 text-sm">Create and manage monthly water bills</p>
       </div>
 
-      <div className="card">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div>
+      <div className="card space-y-4">
+        <div className="flex flex-col md:flex-row md:items-end flex-wrap gap-3">
+          <div className="w-full sm:w-auto min-w-[180px] flex-1 sm:flex-none">
             <label className="label">Society</label>
-            <select className="input w-48" value={selectedSociety} onChange={e => setSelectedSociety(e.target.value)}>
+            <select className="input w-full" value={selectedSociety} onChange={e => setSelectedSociety(e.target.value)}>
               {societies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="label">Year</label>
-            <select className="input w-28" value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}>
+            <select className="input w-full sm:w-28" value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="label">Billing Period</label>
-            <select className="input w-44" value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}>
+            <select className="input w-full sm:w-44" value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}>
               {BIMONTHLY_PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
           </div>
 
           {!bill && !loading && selectedSociety && (
-            <button onClick={createBill} disabled={creating} className="btn-primary">
+            <button onClick={createBill} disabled={creating} className="btn-primary w-full sm:w-auto mt-2 sm:mt-0">
               {creating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Create Bill
             </button>
           )}
 
           {bill && (
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center w-full md:w-auto mt-2 md:mt-0">
               {bill.status === 'DRAFT' && (
-                <button onClick={publishBill} disabled={publishing} className="btn-success">
+                <button onClick={publishBill} disabled={publishing} className="btn-success btn-sm sm:btn-md">
                   {publishing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   Publish
                 </button>
               )}
               {(bill.status === 'PUBLISHED' || bill.status === 'CORRECTED') && (
-                <button onClick={unpublish} className="btn-secondary text-xs">Unpublish</button>
+                <button onClick={unpublish} className="btn-secondary btn-sm">Unpublish</button>
               )}
-              <button onClick={syncHouses} className="btn-secondary text-xs" title="Add new houses that are missing from this bill">
+              <button onClick={syncHouses} className="btn-secondary btn-sm" title="Add new houses that are missing from this bill">
                 <RefreshCw className="w-3.5 h-3.5" /> Sync Houses
               </button>
               {bill.status !== 'PUBLISHED' && (
-                <button onClick={deleteBillAndReset} className="btn-danger text-xs">
+                <button onClick={deleteBillAndReset} className="btn-danger btn-sm">
                   🗑 Delete &amp; Recreate
                 </button>
               )}
-              <button onClick={downloadExcel} className="btn-secondary">
+              <button onClick={downloadExcel} className="btn-secondary btn-sm sm:btn-md">
                 <Download className="w-4 h-4" /> Excel
               </button>
-              <button onClick={downloadPdf} className="btn-secondary">
+              <button onClick={downloadPdf} className="btn-secondary btn-sm sm:btn-md">
                 <Download className="w-4 h-4" /> PDF
               </button>
             </div>
