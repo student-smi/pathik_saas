@@ -150,13 +150,18 @@ export function createSupabaseBillStore(supabase: SupabaseClient): BillStore {
     },
 
     async createBill(data: { societyId: string; year: number; month: number; status: BillStatus }): Promise<MonthlyBill> {
+      const now = new Date().toISOString()
+      const newId = crypto.randomUUID()
       const { data: row, error } = await supabase
         .from('monthly_bills')
         .insert({
+          id: newId,
           societyId: data.societyId,
           year: data.year,
           month: data.month,
           status: data.status,
+          createdAt: now,
+          updatedAt: now,
         })
         .select()
         .single()
@@ -180,7 +185,9 @@ export function createSupabaseBillStore(supabase: SupabaseClient): BillStore {
 
     async createEntries(entries: Omit<BillEntry, 'id' | 'createdAt' | 'updatedAt' | 'house'>[]): Promise<void> {
       if (entries.length === 0) return
+      const now = new Date().toISOString()
       const rows = entries.map(e => ({
+        id: crypto.randomUUID(),
         monthlyBillId: e.monthlyBillId,
         houseId: e.houseId,
         hv: e.hv,
@@ -196,6 +203,8 @@ export function createSupabaseBillStore(supabase: SupabaseClient): BillStore {
         dan: e.dan,
         wch: e.wch,
         isNegative: e.isNegative,
+        createdAt: now,
+        updatedAt: now,
       }))
       const { error } = await supabase.from('bill_entries').insert(rows)
       if (error) throw new Error(error.message)
@@ -467,9 +476,11 @@ export function createSupabaseBillStore(supabase: SupabaseClient): BillStore {
     },
 
     async createEntry(entry: Omit<BillEntry, 'id' | 'createdAt' | 'updatedAt'>): Promise<BillEntry> {
+      const now = new Date().toISOString()
       const { data, error } = await supabase
         .from('bill_entries')
         .insert({
+          id: crypto.randomUUID(),
           monthlyBillId: entry.monthlyBillId,
           houseId: entry.houseId,
           hv: entry.hv,
@@ -485,6 +496,8 @@ export function createSupabaseBillStore(supabase: SupabaseClient): BillStore {
           dan: entry.dan,
           wch: entry.wch,
           isNegative: entry.isNegative,
+          createdAt: now,
+          updatedAt: now,
         })
         .select()
         .single()

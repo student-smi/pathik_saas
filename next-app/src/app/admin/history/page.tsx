@@ -184,33 +184,26 @@ export default function BillHistory() {
   useEffect(() => { loadSocieties() }, [])
   useEffect(() => { if (selectedSociety) loadBills(selectedSociety) }, [selectedSociety])
 
-  const handleExport = async (b: any) => {
-    try {
-      toast.loading('Generating Excel...', { id: 'export-toast' })
-      const params = new URLSearchParams({
-        billId: b.id,
-        societyId: selectedSociety,
-        year: String(b.year),
-        month: String(b.month),
-      })
-      const res = await fetch(`/api/export/excel?${params.toString()}`)
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Export failed' }))
-        throw new Error(err.error || 'Export failed')
-      }
-      const blob = await res.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `water-bill-${b.year}-${b.month}.csv`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      window.URL.revokeObjectURL(url)
-      toast.success('Excel downloaded!', { id: 'export-toast' })
-    } catch (err: any) {
-      toast.error(err.message || 'Export failed', { id: 'export-toast' })
-    }
+  const handleExportExcel = (b: any) => {
+    const params = new URLSearchParams({
+      billId: b.id,
+      societyId: selectedSociety,
+      year: String(b.year),
+      month: String(b.month),
+    })
+    toast.success('Downloading Excel...')
+    window.location.assign(`/api/export/excel?${params.toString()}`)
+  }
+
+  const handleExportPdf = (b: any) => {
+    const params = new URLSearchParams({
+      billId: b.id,
+      societyId: selectedSociety,
+      year: String(b.year),
+      month: String(b.month),
+    })
+    toast.success('Opening PDF...')
+    window.open(`/api/export/pdf?${params.toString()}`, '_blank')
   }
 
   if (loadingSocieties) return <div className="flex items-center justify-center h-48"><div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full" /></div>
@@ -260,8 +253,11 @@ export default function BillHistory() {
               <Link href={`/admin/bills?societyId=${selectedSociety}&year=${b.year}&month=${b.month}`} className="btn-secondary text-xs px-2 py-1.5">
                 <Eye className="w-3.5 h-3.5" /> View
               </Link>
-              <button onClick={() => handleExport(b)} className="btn-secondary text-xs px-2 py-1.5" title="Export Excel">
-                <Download className="w-3.5 h-3.5" />
+              <button onClick={() => handleExportExcel(b)} className="btn-secondary text-xs px-2 py-1.5" title="Export Excel">
+                <Download className="w-3.5 h-3.5" /> Excel
+              </button>
+              <button onClick={() => handleExportPdf(b)} className="btn-secondary text-xs px-2 py-1.5" title="Export PDF">
+                <FileText className="w-3.5 h-3.5" /> PDF
               </button>
             </div>
           </div>

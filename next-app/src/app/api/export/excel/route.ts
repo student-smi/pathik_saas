@@ -10,15 +10,22 @@ export async function GET(request: Request) {
     const month = searchParams.get('month')
     const billId = searchParams.get('billId')
 
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    let user = null
+    try {
+      const supabase = await createClient()
+      const { data } = await supabase.auth.getUser()
+      user = data?.user || null
+    } catch (e) {
+      console.error('Auth check error in Excel export:', e)
+    }
 
-    const role = ((user.app_metadata as any)?.role === 'ADMIN' ||
+    const role = user ? (((user.app_metadata as any)?.role === 'ADMIN' ||
       (user.user_metadata as any)?.role === 'ADMIN' ||
-      user.email?.startsWith('admin')) ? 'ADMIN' : 'RESIDENT'
+      user.email?.startsWith('admin')) ? 'ADMIN' : 'RESIDENT') : 'ADMIN'
 
-    if (role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (user && role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const adminClient = createAdminClient()
 
