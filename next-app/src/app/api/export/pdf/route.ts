@@ -23,19 +23,50 @@ export async function GET(request: Request) {
     if (role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const adminClient = createAdminClient()
-    const { data: billRow } = await adminClient
-      .from('monthly_bills')
-      .select(`
-        *,
-        society:societies(name),
-        entries:bill_entries(*, house:houses(*))
-      `)
-      .eq('society_id', societyId)
-      .eq('year', Number(year))
-      .eq('month', Number(month))
+
+    // 1. Fetch society
+    const { data: society } = await adminClient
+      .from('societies')
+      .select('*')
+      .eq('id', societyId)
       .maybeSingle()
 
+    // 2. Fetch monthly bills
+    const { data: rawBills } = await adminClient
+      .from('monthly_bills')
+      .select('*')
+
+    const billRow = (rawBills || []).find((b: any) =>
+      (b.societyId || b.society_id) === societyId &&
+      Number(b.year) === Number(year) &&
+      Number(b.month) === Number(month)
+    )
+
     if (!billRow) return NextResponse.json({ error: 'Bill not found' }, { status: 404 })
+
+    // 3. Fetch entries and houses
+    const { data: rawEntries } = await adminClient.from('bill_entries').select('*')
+    const { data: rawHouses } = await adminClient.from('houses').select('*')
+
+    const houseMap: Record<string, any> = {}
+    ;(rawHouses || []).forEach((h: any) => { houseMap[h.id] = h })
+
+    const billEntries = (rawEntries || [])
+      .filter((e: any) => (e.monthlyBillId || e.monthly_bill_id) === billRow.id)
+      .map((e: any) => {
+        const houseId = e.houseId || e.house_id
+        return {
+          ...e,
+          house: houseMap[houseId] || {}
+        }
+      })
+      .sort((a, b) => {
+        const houseNoA = a.house?.houseNo || a.house?.house_no || '0'
+        const houseNoB = b.house?.houseNo || b.house?.house_no || '0'
+        const numA = parseInt(houseNoA, 10)
+        const numB = parseInt(houseNoB, 10)
+        return (isNaN(numA) || isNaN(numB)) ? houseNoA.localeCompare(houseNoB) : numA - numB
+      })
 
     const BILL_PERIOD_MAP: Record<number, string> = {
       1: 'Jan-Feb', 2: 'Jan-Feb', 3: 'Mar-Apr', 4: 'Mar-Apr',
@@ -43,7 +74,7 @@ export async function GET(request: Request) {
       9: 'Sep-Oct', 10: 'Sep-Oct', 11: 'Nov-Dec', 12: 'Nov-Dec',
     }
     const periodLabel = `${BILL_PERIOD_MAP[billRow.month] || 'Period'} ${billRow.year}`
-    const societyName = billRow.society?.name || 'Pathik Society'
+    const societyName = society?.name || 'Pathik Society'
 
     const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape' })
     const chunks: Buffer[] = []
@@ -76,21 +107,13 @@ export async function GET(request: Request) {
     doc.fillColor('black')
     y += 22
 
-    // Data rows
-    const entries = (billRow.entries as any[] || []).sort((a, b) => {
-      const numA = parseInt(a.house?.house_no || '0', 10)
-      const numB = parseInt(b.house?.house_no || '0', 10)
-      return (isNaN(numA) || isNaN(numB))
-        ? (a.house?.house_no || '').localeCompare(b.house?.house_no || '')
-        : numA - numB
-    })
-
     doc.font('Helvetica').fontSize(9)
-    for (let idx = 0; idx < entries.length; idx++) {
-      const entry = entries[idx]
-      const isNeg = entry.is_negative || (entry.unit !== null && entry.unit < 0)
+    for (let idx = 0; idx < billEntries.length; idx++) {
+      const entry = billEntries[idx]
+      const isNeg = !!(entry.isNegative ?? entry.is_negative) || (entry.unit !== null && entry.unit < 0)
+      const houseNo = entry.house?.houseNo || entry.house?.house_no || ''
       const rowData = [
-        entry.house?.house_no || '',
+        houseNo,
         entry.hv ?? '-',
         entry.av ?? '-',
         entry.unit ?? '-',
@@ -136,4 +159,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
-

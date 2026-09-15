@@ -22,21 +22,46 @@ export async function GET(request: Request) {
     if (role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const adminClient = createAdminClient()
-    const { data: billRow } = await adminClient
+
+    // 1. Fetch monthly bills
+    const { data: rawBills } = await adminClient
       .from('monthly_bills')
-      .select(`
-        *,
-        entries:bill_entries(*, house:houses(*))
-      `)
-      .eq('society_id', societyId)
-      .eq('year', Number(year))
-      .eq('month', Number(month))
-      .maybeSingle()
+      .select('*')
+
+    const billRow = (rawBills || []).find((b: any) =>
+      (b.societyId || b.society_id) === societyId &&
+      Number(b.year) === Number(year) &&
+      Number(b.month) === Number(month)
+    )
 
     if (!billRow) return NextResponse.json({ error: 'Bill not found' }, { status: 404 })
 
-    const rows = (billRow.entries as any[] || []).map(e => ({
-      'House No.': e.house?.house_no || '',
+    // 2. Fetch entries and houses
+    const { data: rawEntries } = await adminClient.from('bill_entries').select('*')
+    const { data: rawHouses } = await adminClient.from('houses').select('*')
+
+    const houseMap: Record<string, any> = {}
+    ;(rawHouses || []).forEach((h: any) => { houseMap[h.id] = h })
+
+    const billEntries = (rawEntries || [])
+      .filter((e: any) => (e.monthlyBillId || e.monthly_bill_id) === billRow.id)
+      .map((e: any) => {
+        const houseId = e.houseId || e.house_id
+        return {
+          ...e,
+          house: houseMap[houseId] || {}
+        }
+      })
+      .sort((a, b) => {
+        const houseNoA = a.house?.houseNo || a.house?.house_no || '0'
+        const houseNoB = b.house?.houseNo || b.house?.house_no || '0'
+        const numA = parseInt(houseNoA, 10)
+        const numB = parseInt(houseNoB, 10)
+        return (isNaN(numA) || isNaN(numB)) ? houseNoA.localeCompare(houseNoB) : numA - numB
+      })
+
+    const rows = billEntries.map(e => ({
+      'House No.': e.house?.houseNo || e.house?.house_no || '',
       'H.V': e.hv ?? 0,
       'A.V': e.av ?? '',
       'UNIT': e.unit ?? '',
