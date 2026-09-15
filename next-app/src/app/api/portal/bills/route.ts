@@ -17,86 +17,116 @@ export async function GET() {
     const role = deriveRole(user)
     if (role !== 'RESIDENT') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    const { data: residentRow } = await supabase
-      .from('residents')
-      .select('id, house_id, house:houses(id, house_no, society_id, society:societies(id, name))')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    const adminClient = createAdminClient()
 
-    if (!residentRow || !residentRow.house_id) {
+    // Fetch resident row using adminClient (bypassing RLS and supporting camelCase & snake_case)
+    const { data: rawResidents } = await adminClient
+      .from('residents')
+      .select('*')
+
+    const residentRow = (rawResidents || []).find((r: any) => (r.userId || r.user_id) === user.id)
+
+    if (!residentRow) {
       return NextResponse.json({ bills: [], current: null })
     }
 
-    const house = residentRow.house as any || {}
-    const houseId = residentRow.house_id
-    const societyId = house.society_id
+    const houseId = residentRow.houseId || residentRow.house_id
 
-    const adminClient = createAdminClient()
-    const { data: entries } = await adminClient
+    // Fetch house
+    const { data: house } = await adminClient
+      .from('houses')
+      .select('*')
+      .eq('id', houseId)
+      .maybeSingle()
+
+    if (!house) {
+      return NextResponse.json({ bills: [], current: null })
+    }
+
+    const societyId = house.societyId || house.society_id
+
+    // Fetch society
+    const { data: society } = await adminClient
+      .from('societies')
+      .select('*')
+      .eq('id', societyId)
+      .maybeSingle()
+
+    // Fetch bill entries for this house
+    const { data: rawEntries } = await adminClient
       .from('bill_entries')
-      .select(`
-        *,
-        monthly_bill:monthly_bills(*)
-      `)
-      .eq('house_id', houseId)
-      .eq('monthly_bill.society_id', societyId)
-      .in('monthly_bill.status', ['PUBLISHED', 'CORRECTED'])
-      .order('monthly_bill.year', { ascending: false, foreignTable: 'monthly_bills' })
-      .order('monthly_bill.month', { ascending: false, foreignTable: 'monthly_bills' })
+      .select('*')
 
-    const bills: Array<BillEntry & { monthlyBill: MonthlyBill }> = (entries as any[] || []).map(e => {
-      const m = e.monthly_bill || {}
-      return {
-        id: e.id,
-        createdAt: e.created_at ? new Date(e.created_at) : new Date(),
-        updatedAt: e.updated_at ? new Date(e.updated_at) : new Date(),
-        monthlyBillId: e.monthly_bill_id,
-        houseId: e.house_id,
-        house: {} as any,
-        monthlyBill: {
-          id: m.id,
-          year: m.year,
-          month: m.month,
-          status: m.status,
-          notes: m.notes ?? null,
-          createdAt: m.created_at ? new Date(m.created_at) : new Date(),
-          updatedAt: m.updated_at ? new Date(m.updated_at) : new Date(),
-          publishedAt: m.published_at ? new Date(m.published_at) : null,
-          societyId: m.society_id,
-          society: house.society ? {
-            id: house.society.id,
-            name: house.society.name,
-            address: null,
-            city: null,
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            adminId: '',
-            admin: {} as any,
-            houses: [] as any,
-            monthlyBills: [] as any,
-            calcConfigs: [] as any,
-          } : {} as any,
-          entries: [] as any,
-        },
-        hv: e.hv ?? 0,
-        av: e.av ?? null,
-        hvAutoFilled: !!e.hv_auto_filled,
-        unit: e.unit ?? null,
-        falo: e.falo ?? null,
-        v: e.v ?? 0,
-        total: e.total ?? null,
-        aa: e.aa ?? null,
-        b: e.b ?? null,
-        dan: e.dan ?? null,
-        wch: e.wch ?? null,
-        isNegative: !!e.is_negative,
-        isManualHv: !!e.is_manual_hv,
-      }
-    })
+    const houseEntries = (rawEntries || []).filter((e: any) => (e.houseId || e.house_id) === houseId)
 
-    const current = bills[0] || null
-    return NextResponse.json({ bills, current, houseNo: house.house_no, societyName: house.society?.name })
+    // Fetch published or corrected monthly bills for this society
+    const { data: rawBills } = await adminClient
+      .from('monthly_bills')
+      .select('*')
+
+    const societyBills = (rawBills || []).filter((b: any) => 
+      (b.societyId || b.society_id) === societyId && 
+      (b.status === 'PUBLISHED' || b.status === 'CORRECTED')
+    )
+
+    const billMap: Record<string, any> = {}
+    societyBills.forEach((b: any) => { billMap[b.id] = b })
+
+    // Filter and map entries
+    const validEntries: Array<BillEntry & { monthlyBill: MonthlyBill }> = houseEntries
+      .filter((e: any) => billMap[e.monthlyBillId || e.monthly_bill_id])
+      .map((e: any) => {
+        const m = billMap[e.monthlyBillId || e.monthly_bill_id]
+        return {
+          id: e.id,
+          createdAt: e.createdAt ? new Date(e.createdAt) : (e.created_at ? new Date(e.created_at) : new Date()),
+          updatedAt: e.updatedAt ? new Date(e.updatedAt) : (e.updated_at ? new Date(e.updated_at) : new Date()),
+          monthlyBillId: e.monthlyBillId || e.monthly_bill_id,
+          houseId: e.houseId || e.house_id,
+          house: {
+            id: house.id,
+            houseNo: house.houseNo || house.house_no || '',
+            societyId,
+            society: society || {}
+          } as any,
+          monthlyBill: {
+            id: m.id,
+            year: m.year,
+            month: m.month,
+            status: m.status,
+            notes: m.notes ?? null,
+            createdAt: m.createdAt ? new Date(m.createdAt) : (m.created_at ? new Date(m.created_at) : new Date()),
+            updatedAt: m.updatedAt ? new Date(m.updatedAt) : (m.updated_at ? new Date(m.updated_at) : new Date()),
+            publishedAt: m.publishedAt ? new Date(m.publishedAt) : (m.published_at ? new Date(m.published_at) : null),
+            societyId: m.societyId || m.society_id,
+            society: society || {} as any,
+            entries: [] as any,
+          },
+          hv: e.hv ?? 0,
+          av: e.av ?? null,
+          hvAutoFilled: !!(e.hvAutoFilled ?? e.hv_auto_filled),
+          unit: e.unit ?? null,
+          falo: e.falo ?? null,
+          v: e.v ?? 0,
+          total: e.total ?? null,
+          aa: e.aa ?? null,
+          b: e.b ?? null,
+          dan: e.dan ?? null,
+          wch: e.wch ?? null,
+          isNegative: !!(e.isNegative ?? e.is_negative),
+          isManualHv: !!(e.isManualHv ?? e.is_manual_hv),
+        }
+      })
+      .sort((a, b) => {
+        if (b.monthlyBill.year !== a.monthlyBill.year) return b.monthlyBill.year - a.monthlyBill.year
+        return b.monthlyBill.month - a.monthlyBill.month
+      })
+
+    const current = validEntries[0] || null
+    const houseNo = house.houseNo || house.house_no || ''
+    const societyName = society?.name || ''
+
+    return NextResponse.json({ bills: validEntries, current, houseNo, societyName })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Server error'
     return NextResponse.json({ error: message }, { status: 500 })
