@@ -113,13 +113,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string): Promise<AppUser> => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw new Error(error.message)
-    if (!data.session?.user) throw new Error('No session returned')
-    const appUser = await fetchAppUser(data.session.user.id, data.session.user.email || '', supabase)
-    setSession(data.session)
-    setUser(appUser)
-    return appUser
+    const cleanEmail = email.trim().toLowerCase()
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password })
+      if (error || !data.session?.user) throw error || new Error('Client auth failed')
+      const appUser = await fetchAppUser(data.session.user.id, data.session.user.email || cleanEmail, supabase)
+      setSession(data.session)
+      setUser(appUser)
+      return appUser
+    } catch {
+      // Fallback to server-side API auth route which auto-syncs user accounts
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password }),
+      })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        throw new Error(json.error || 'Invalid email or password')
+      }
+      const { data: sData } = await supabase.auth.getSession()
+      if (sData?.session) {
+        setSession(sData.session)
+      }
+      const appUser: AppUser = json.user
+      setUser(appUser)
+      return appUser
+    }
   }
 
   const logout = async () => {
