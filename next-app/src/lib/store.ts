@@ -557,5 +557,11 @@ export function createSupabaseBillStore(supabase: SupabaseClient): BillStore {
         _count: { entries: entryCountMap[b.id] || 0 },
       }))
     },
+
+    async deleteBill(billId: string): Promise<void> {
+      await supabase.from('bill_entries').delete().eq('monthlyBillId', billId)
+      await supabase.from('bill_entries').delete().eq('monthly_bill_id', billId)
+      await supabase.from('monthly_bills').delete().eq('id', billId)
+    },
   }
 }

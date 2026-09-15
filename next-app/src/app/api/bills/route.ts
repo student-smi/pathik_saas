@@ -59,3 +59,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status })
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const billId = searchParams.get('billId')
+    if (!billId) return NextResponse.json({ error: 'billId required' }, { status: 400 })
+
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const role = ((user.app_metadata as any)?.role === 'ADMIN' ||
+      (user.user_metadata as any)?.role === 'ADMIN' ||
+      user.email?.startsWith('admin')) ? 'ADMIN' : 'RESIDENT'
+
+    if (role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+    const adminClient = createAdminClient()
+    const store = createSupabaseBillStore(adminClient)
+    await store.deleteBill(billId)
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    const status = (err as any).status || 500
+    const message = err instanceof Error ? err.message : 'Server error'
+    return NextResponse.json({ error: message }, { status })
+  }
+}

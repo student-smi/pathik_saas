@@ -47,6 +47,7 @@ export interface BillStore {
   findEntryUnique(monthlyBillId: string, houseId: string): Promise<BillEntry | null>
   createEntry(entry: Omit<BillEntry, 'id' | 'createdAt' | 'updatedAt'>): Promise<BillEntry>
   listBills(societyId: string): Promise<Array<MonthlyBill & { _count?: { entries?: number } }>>
+  deleteBill(billId: string): Promise<void>
 }
 
 // ─── Pure helpers ────────────────────────────────────────────────────────
@@ -294,5 +295,11 @@ export class BillService {
         isNegative: false,
       } as any)
     }
+  }
+
+  async deleteBill(billId: string): Promise<void> {
+    const bill = await this.store.findBillById(billId)
+    assert(bill, 'Bill not found', 404)
+    await this.store.deleteBill(billId)
   }
 }

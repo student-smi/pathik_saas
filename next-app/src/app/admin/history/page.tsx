@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { Society, MonthlyBill, BillStatus } from '@/types'
 import toast from 'react-hot-toast'
-import { History, FileText, Download, Eye } from 'lucide-react'
+import { History, FileText, Download, Eye, Edit, Trash2 } from 'lucide-react'
 
 const sampleSocieties: Society[] = [
   {
@@ -206,13 +206,32 @@ export default function BillHistory() {
     window.open(`/api/export/pdf?${params.toString()}`, '_blank')
   }
 
+  const handleDeleteBill = async (b: any) => {
+    const period = getPeriodName(b.month)
+    if (!confirm(`Are you sure you want to delete ${period} ${b.year} bill?\n\nThis will remove all entries for this period.`)) return
+    try {
+      toast.loading('Deleting bill...', { id: 'delete-toast' })
+      const res = await fetch(`/api/bills?billId=${encodeURIComponent(b.id)}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Delete failed' }))
+        throw new Error(err.error || 'Delete failed')
+      }
+      toast.success('Bill deleted successfully!', { id: 'delete-toast' })
+      setBills(prev => prev.filter(item => item.id !== b.id))
+    } catch (err: any) {
+      toast.error(err.message || 'Delete failed', { id: 'delete-toast' })
+    }
+  }
+
   if (loadingSocieties) return <div className="flex items-center justify-center h-48"><div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full" /></div>
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Bill History</h1>
-        <p className="text-gray-500 text-sm">All historical bills — previous months are preserved and never overwritten</p>
+        <p className="text-gray-500 text-sm">All historical bills — edit, delete, or export any bill period</p>
       </div>
 
       <div>
@@ -233,9 +252,9 @@ export default function BillHistory() {
 
       <div className="space-y-2">
         {bills.map(b => (
-          <div key={b.id} className="card flex items-center justify-between py-4">
+          <div key={b.id} className="card flex flex-col md:flex-row md:items-center justify-between py-4 gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0">
                 <FileText className="w-5 h-5 text-primary-600" />
               </div>
               <div>
@@ -243,21 +262,24 @@ export default function BillHistory() {
                 <p className="text-xs text-gray-500">{b._count?.entries || 0} houses</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={b.status} />
               {b.publishedAt && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 mr-2 hidden sm:inline">
                   Published {new Date(b.publishedAt).toLocaleDateString()}
                 </span>
               )}
-              <Link href={`/admin/bills?societyId=${selectedSociety}&year=${b.year}&month=${b.month}`} className="btn-secondary text-xs px-2 py-1.5">
-                <Eye className="w-3.5 h-3.5" /> View
+              <Link href={`/admin/bills?societyId=${selectedSociety}&year=${b.year}&month=${b.month}`} className="btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1">
+                <Edit className="w-3.5 h-3.5 text-primary-600" /> Edit / View
               </Link>
-              <button onClick={() => handleExportExcel(b)} className="btn-secondary text-xs px-2 py-1.5" title="Export Excel">
+              <button onClick={() => handleExportExcel(b)} className="btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1" title="Export Excel">
                 <Download className="w-3.5 h-3.5" /> Excel
               </button>
-              <button onClick={() => handleExportPdf(b)} className="btn-secondary text-xs px-2 py-1.5" title="Export PDF">
+              <button onClick={() => handleExportPdf(b)} className="btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1" title="Export PDF">
                 <FileText className="w-3.5 h-3.5" /> PDF
+              </button>
+              <button onClick={() => handleDeleteBill(b)} className="btn-danger text-xs px-2.5 py-1.5 flex items-center gap-1" title="Delete Bill">
+                <Trash2 className="w-3.5 h-3.5" /> Delete
               </button>
             </div>
           </div>
