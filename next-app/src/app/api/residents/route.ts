@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import type { Resident, User, House, UserRole } from '@/types'
+import { compareHouseNos } from '@/lib/houseUtils'
 
 export async function GET(request: Request) {
   try {
@@ -72,11 +73,7 @@ export async function GET(request: Request) {
           resident: null,
         },
       }
-    }).sort((a, b) => {
-      const numA = parseInt(a.house.houseNo, 10)
-      const numB = parseInt(b.house.houseNo, 10)
-      return (isNaN(numA) || isNaN(numB)) ? a.house.houseNo.localeCompare(b.house.houseNo) : numA - numB
-    })
+    }).sort((a, b) => compareHouseNos(a.house.houseNo || '', b.house.houseNo || ''))
 
     return NextResponse.json({ residents })
   } catch (err) {

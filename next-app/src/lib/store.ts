@@ -2,6 +2,7 @@ import type { Society, House, Resident, MonthlyBill, BillEntry, CalcConfig, Bill
 import type { BillStore } from './bill-service'
 import { previousMonth } from './bill-service'
 import { createAdminClient } from './supabase/server'
+import { compareHouseNos } from './houseUtils'
 
 type SupabaseClient = ReturnType<typeof createAdminClient>
 
@@ -72,11 +73,7 @@ export function createSupabaseBillStore(supabase: SupabaseClient): BillStore {
       const { data: rawHouses } = await supabase.from('houses').select('*')
       if (!rawHouses) return []
       const filtered = rawHouses.filter(h => (h.societyId || h.society_id) === societyId && (h.isActive ?? h.is_active ?? true))
-      filtered.sort((a, b) => {
-        const numA = parseInt(a.houseNo || a.house_no || '0', 10)
-        const numB = parseInt(b.houseNo || b.house_no || '0', 10)
-        return (isNaN(numA) || isNaN(numB)) ? (a.houseNo || a.house_no || '').localeCompare(b.houseNo || b.house_no || '') : numA - numB
-      })
+      filtered.sort((a, b) => compareHouseNos(a.houseNo || a.house_no || '', b.houseNo || b.house_no || ''))
       return filtered.map(h => ({
         id: h.id,
         houseNo: h.houseNo || h.house_no,
@@ -273,11 +270,7 @@ export function createSupabaseBillStore(supabase: SupabaseClient): BillStore {
         }
       })
 
-      entries.sort((a, b) => {
-        const numA = parseInt(a.house.houseNo, 10)
-        const numB = parseInt(b.house.houseNo, 10)
-        return (isNaN(numA) || isNaN(numB)) ? a.house.houseNo.localeCompare(b.house.houseNo) : numA - numB
-      })
+      entries.sort((a, b) => compareHouseNos(a.house.houseNo || '', b.house.houseNo || ''))
 
       return {
         id: billRow.id,

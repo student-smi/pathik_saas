@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import PDFDocument from 'pdfkit'
+import { compareHouseNos } from '@/lib/houseUtils'
 
 export async function GET(request: Request) {
   try {
@@ -84,13 +85,7 @@ export async function GET(request: Request) {
           house: houseMap[houseId] || {}
         }
       })
-      .sort((a, b) => {
-        const houseNoA = a.house?.houseNo || a.house?.house_no || '0'
-        const houseNoB = b.house?.houseNo || b.house?.house_no || '0'
-        const numA = parseInt(houseNoA, 10)
-        const numB = parseInt(houseNoB, 10)
-        return (isNaN(numA) || isNaN(numB)) ? houseNoA.localeCompare(houseNoB) : numA - numB
-      })
+      .sort((a, b) => compareHouseNos(a.house?.houseNo || a.house?.house_no || '', b.house?.houseNo || b.house?.house_no || ''))
 
     const BILL_PERIOD_MAP: Record<number, string> = {
       1: 'Jan-Feb', 2: 'Jan-Feb', 3: 'Mar-Apr', 4: 'Mar-Apr',

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { House } from '@/types'
 import { BillService } from '@/lib/bill-service'
 import { createSupabaseBillStore } from '@/lib/store'
+import { compareHouseNos } from '@/lib/houseUtils'
 
 export async function GET(request: Request) {
   try {
@@ -96,11 +97,7 @@ export async function GET(request: Request) {
         resident,
         billEntries: [] as any,
       }
-    }).sort((a, b) => {
-      const numA = parseInt(a.houseNo, 10)
-      const numB = parseInt(b.houseNo, 10)
-      return (isNaN(numA) || isNaN(numB)) ? a.houseNo.localeCompare(b.houseNo) : numA - numB
-    })
+    }).sort((a, b) => compareHouseNos(a.houseNo, b.houseNo))
 
     return NextResponse.json({ houses })
   } catch (err) {
