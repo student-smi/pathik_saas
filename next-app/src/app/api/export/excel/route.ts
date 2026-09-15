@@ -7,9 +7,7 @@ export async function GET(request: Request) {
     const societyId = searchParams.get('societyId')
     const year = searchParams.get('year')
     const month = searchParams.get('month')
-    if (!societyId || !year || !month) {
-      return NextResponse.json({ error: 'societyId, year, month required' }, { status: 400 })
-    }
+    const billId = searchParams.get('billId')
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -23,20 +21,44 @@ export async function GET(request: Request) {
 
     const adminClient = createAdminClient()
 
-    // 1. Fetch monthly bills
+    // Fetch all monthly bills to match flexibly
     const { data: rawBills } = await adminClient
       .from('monthly_bills')
       .select('*')
 
-    const billRow = (rawBills || []).find((b: any) =>
-      (b.societyId || b.society_id) === societyId &&
-      Number(b.year) === Number(year) &&
-      Number(b.month) === Number(month)
-    )
+    let billRow: any = null
+
+    // 1. Try matching by billId
+    if (billId) {
+      billRow = (rawBills || []).find((b: any) => b.id === billId)
+    }
+
+    // 2. Try matching by societyId + year + month
+    if (!billRow && societyId && year && month && !isNaN(Number(year)) && !isNaN(Number(month))) {
+      billRow = (rawBills || []).find((b: any) =>
+        (b.societyId || b.society_id) === societyId &&
+        Number(b.year) === Number(year) &&
+        Number(b.month) === Number(month)
+      )
+    }
+
+    // 3. Fallback: Match by societyId (get latest bill)
+    if (!billRow && societyId) {
+      const societyBills = (rawBills || [])
+        .filter((b: any) => (b.societyId || b.society_id) === societyId)
+        .sort((a: any, b: any) => (b.year - a.year) || (b.month - a.month))
+      billRow = societyBills[0] || null
+    }
+
+    // 4. Fallback: Pick latest bill in DB
+    if (!billRow && rawBills && rawBills.length > 0) {
+      const sortedBills = [...rawBills].sort((a: any, b: any) => (b.year - a.year) || (b.month - a.month))
+      billRow = sortedBills[0] || null
+    }
 
     if (!billRow) return NextResponse.json({ error: 'Bill not found' }, { status: 404 })
 
-    // 2. Fetch entries and houses
+    // Fetch entries and houses
     const { data: rawEntries } = await adminClient.from('bill_entries').select('*')
     const { data: rawHouses } = await adminClient.from('houses').select('*')
 
@@ -90,7 +112,7 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="bill-${societyId}-${period}.csv"`,
+        'Content-Disposition': `attachment; filename="bill-${billRow.societyId || societyId || 'export'}-${period}.csv"`,
       },
     })
   } catch (err) {

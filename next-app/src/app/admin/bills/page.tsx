@@ -438,12 +438,22 @@ export default function MonthlyBillScreen() {
 
   const downloadExcel = () => {
     if (!bill) return
-    const params = new URLSearchParams({ societyId: selectedSociety, year: String(selectedYear), month: String(selectedMonth) })
+    const params = new URLSearchParams({
+      billId: bill.id,
+      societyId: selectedSociety,
+      year: String(bill.year || selectedYear),
+      month: String(bill.month || selectedMonth),
+    })
     window.location.href = `/api/export/excel?${params.toString()}`
   }
   const downloadPdf = () => {
     if (!bill) return
-    const params = new URLSearchParams({ societyId: selectedSociety, year: String(selectedYear), month: String(selectedMonth) })
+    const params = new URLSearchParams({
+      billId: bill.id,
+      societyId: selectedSociety,
+      year: String(bill.year || selectedYear),
+      month: String(bill.month || selectedMonth),
+    })
     window.location.href = `/api/export/pdf?${params.toString()}`
   }
 

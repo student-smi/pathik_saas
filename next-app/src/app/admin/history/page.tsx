@@ -185,7 +185,12 @@ export default function BillHistory() {
   useEffect(() => { if (selectedSociety) loadBills(selectedSociety) }, [selectedSociety])
 
   const handleExport = (b: any) => {
-    const params = new URLSearchParams({ societyId: selectedSociety, year: String(b.year), month: String(b.month) })
+    const params = new URLSearchParams({
+      billId: b.id,
+      societyId: selectedSociety,
+      year: String(b.year),
+      month: String(b.month),
+    })
     window.location.href = `/api/export/excel?${params.toString()}`
   }
 
