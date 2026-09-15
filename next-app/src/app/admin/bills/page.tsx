@@ -436,25 +436,64 @@ export default function MonthlyBillScreen() {
     setBill(b => b ? ({ ...b, entries: b.entries.map(e => e.id === updated.id ? { ...e, ...updated } : e) }) : b)
   }
 
-  const downloadExcel = () => {
+  const downloadExcel = async () => {
     if (!bill) return
-    const params = new URLSearchParams({
-      billId: bill.id,
-      societyId: selectedSociety,
-      year: String(bill.year || selectedYear),
-      month: String(bill.month || selectedMonth),
-    })
-    window.location.href = `/api/export/excel?${params.toString()}`
+    try {
+      toast.loading('Generating Excel...', { id: 'export-toast' })
+      const params = new URLSearchParams({
+        billId: bill.id,
+        societyId: selectedSociety,
+        year: String(bill.year || selectedYear),
+        month: String(bill.month || selectedMonth),
+      })
+      const res = await fetch(`/api/export/excel?${params.toString()}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Export failed' }))
+        throw new Error(err.error || 'Export failed')
+      }
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `water-bill-${selectedSociety}-${bill.year}-${bill.month}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      toast.success('Excel downloaded!', { id: 'export-toast' })
+    } catch (err: any) {
+      toast.error(err.message || 'Excel download failed', { id: 'export-toast' })
+    }
   }
-  const downloadPdf = () => {
+
+  const downloadPdf = async () => {
     if (!bill) return
-    const params = new URLSearchParams({
-      billId: bill.id,
-      societyId: selectedSociety,
-      year: String(bill.year || selectedYear),
-      month: String(bill.month || selectedMonth),
-    })
-    window.location.href = `/api/export/pdf?${params.toString()}`
+    try {
+      toast.loading('Generating PDF...', { id: 'export-toast' })
+      const params = new URLSearchParams({
+        billId: bill.id,
+        societyId: selectedSociety,
+        year: String(bill.year || selectedYear),
+        month: String(bill.month || selectedMonth),
+      })
+      const res = await fetch(`/api/export/pdf?${params.toString()}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Export failed' }))
+        throw new Error(err.error || 'Export failed')
+      }
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `water-bill-${selectedSociety}-${bill.year}-${bill.month}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      toast.success('PDF downloaded!', { id: 'export-toast' })
+    } catch (err: any) {
+      toast.error(err.message || 'PDF download failed', { id: 'export-toast' })
+    }
   }
 
   const years = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() + 1]

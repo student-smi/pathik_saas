@@ -31,29 +31,29 @@ export async function GET(request: Request) {
 
     // 1. Try matching by billId
     if (billId) {
-      billRow = (rawBills || []).find((b: any) => b.id === billId)
+      billRow = (rawBills || []).find((b: any) => String(b.id) === String(billId))
     }
 
     // 2. Try matching by societyId + year + month
-    if (!billRow && societyId && year && month && !isNaN(Number(year)) && !isNaN(Number(month))) {
+    if (!billRow && societyId) {
       billRow = (rawBills || []).find((b: any) =>
-        (b.societyId || b.society_id) === societyId &&
-        Number(b.year) === Number(year) &&
-        Number(b.month) === Number(month)
+        String(b.societyId || b.society_id) === String(societyId) &&
+        (year ? String(b.year) === String(year) : true) &&
+        (month ? String(b.month) === String(month) : true)
       )
     }
 
     // 3. Fallback: Match by societyId (get latest bill)
     if (!billRow && societyId) {
       const societyBills = (rawBills || [])
-        .filter((b: any) => (b.societyId || b.society_id) === societyId)
-        .sort((a: any, b: any) => (b.year - a.year) || (b.month - a.month))
+        .filter((b: any) => String(b.societyId || b.society_id) === String(societyId))
+        .sort((a: any, b: any) => (Number(b.year) - Number(a.year)) || (Number(b.month) - Number(a.month)))
       billRow = societyBills[0] || null
     }
 
     // 4. Fallback: Pick latest bill in DB
     if (!billRow && rawBills && rawBills.length > 0) {
-      const sortedBills = [...rawBills].sort((a: any, b: any) => (b.year - a.year) || (b.month - a.month))
+      const sortedBills = [...rawBills].sort((a: any, b: any) => (Number(b.year) - Number(a.year)) || (Number(b.month) - Number(a.month)))
       billRow = sortedBills[0] || null
     }
 
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
     ;(rawHouses || []).forEach((h: any) => { houseMap[h.id] = h })
 
     const billEntries = (rawEntries || [])
-      .filter((e: any) => (e.monthlyBillId || e.monthly_bill_id) === billRow.id)
+      .filter((e: any) => String(e.monthlyBillId || e.monthly_bill_id) === String(billRow.id))
       .map((e: any) => {
         const houseId = e.houseId || e.house_id
         return {
