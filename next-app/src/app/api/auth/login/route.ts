@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { signSessionToken } from '@/lib/auth/jwt'
 import type { UserRole } from '@/types'
 
 export async function POST(request: Request) {
@@ -21,8 +22,8 @@ export async function POST(request: Request) {
       password,
     })
 
-    // If client login fails, check if user exists in public.users and sync to auth.users if needed
-    if (error || !data.session?.user) {
+    if (error || !data?.session?.user) {
+      // Check if user exists in public.users and sync if needed
       const adminClient = createAdminClient()
       const { data: dbUser } = await adminClient
         .from('users')
@@ -32,30 +33,12 @@ export async function POST(request: Request) {
 
       if (dbUser) {
         const userRole: UserRole = (dbUser.role === 'ADMIN' || cleanEmail.startsWith('admin')) ? 'ADMIN' : 'RESIDENT'
+        await adminClient.auth.admin.createUser({
+          email: cleanEmail,
+          password,
+          user_metadata: { role: userRole }
+        })
 
-        // Check if user exists in Supabase Auth
-        const { data: authList } = await adminClient.auth.admin.listUsers()
-        const existingAuthUser = authList?.users?.find(u => u.email?.toLowerCase() === cleanEmail)
-
-        if (!existingAuthUser) {
-          // Create in auth.users
-          await adminClient.auth.admin.createUser({
-            email: cleanEmail,
-            password,
-            email_confirm: true,
-            user_metadata: { role: userRole },
-            app_metadata: { role: userRole },
-          })
-        } else {
-          // Update password in auth.users
-          await adminClient.auth.admin.updateUserById(existingAuthUser.id, {
-            password,
-            user_metadata: { role: userRole },
-            app_metadata: { role: userRole },
-          })
-        }
-
-        // Retry login
         const retryResult = await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password,
@@ -65,7 +48,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (error || !data.session?.user) {
+    if (error || !data?.session?.user) {
       return NextResponse.json(
         { error: error?.message || 'Invalid email or password' },
         { status: 401 }
@@ -73,38 +56,32 @@ export async function POST(request: Request) {
     }
 
     const sbUser = data.session.user
-    const role: UserRole = (((sbUser.app_metadata as any)?.role) === 'ADMIN' ||
-      ((sbUser.user_metadata as any)?.role) === 'ADMIN' ||
-      sbUser.email?.startsWith('admin'))
-      ? 'ADMIN'
-      : 'RESIDENT'
+    const role: UserRole = (sbUser.role === 'ADMIN' || cleanEmail.startsWith('admin')) ? 'ADMIN' : 'RESIDENT'
 
-    let appUser = {
+    const appUser = {
       id: sbUser.id,
       email: sbUser.email || cleanEmail,
       role,
       isActive: true,
     }
 
-    try {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id, email, role, isActive')
-        .eq('id', sbUser.id)
-        .maybeSingle()
+    const sessionToken = await signSessionToken({
+      id: appUser.id,
+      email: appUser.email,
+      role: appUser.role,
+    })
 
-      if (userData) {
-        appUser = {
-          id: userData.id,
-          email: userData.email || cleanEmail,
-          role: (userData.role === 'ADMIN' ? 'ADMIN' : 'RESIDENT') as UserRole,
-          isActive: userData.isActive !== undefined ? !!userData.isActive : true,
-        }
-      }
-    } catch {
-    }
+    const response = NextResponse.json({ user: appUser })
 
-    return NextResponse.json({ user: appUser })
+    response.cookies.set('auth_session', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    })
+
+    return response
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Server error'
     return NextResponse.json({ error: message }, { status: 500 })

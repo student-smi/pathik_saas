@@ -11,9 +11,14 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pathik_db",
+      "database_id": "da10750f-67c4-4ae6-9568-61092fcc9141"
+    }
+  ],
   "vars": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://dmrunwrkapxxbwykrdik.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtcnVud3JrYXB4eGJ3eWtyZGlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTQ0NjMsImV4cCI6MjEwNDkzMDQ2M30.6BnCZMlL20cqiZfY0x3o4SKJKB048VpjqP-LIrFqmbo",
-    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtcnVud3JrYXB4eGJ3eWtyZGlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTM1NDQ2MywiZXhwIjoyMTA0OTMwNDYzfQ.SXMxB0rUJuDm_bFhJnjbSO_JI7FAkDarvL2AkFpwIiI"
+    "JWT_SECRET": "pathik-sco-super-secret-jwt-key-2026"
   }
 }

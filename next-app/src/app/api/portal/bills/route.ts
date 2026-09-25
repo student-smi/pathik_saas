@@ -117,7 +117,7 @@ export async function GET() {
           isManualHv: !!(e.isManualHv ?? e.is_manual_hv),
         }
       })
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         if (b.monthlyBill.year !== a.monthlyBill.year) return b.monthlyBill.year - a.monthlyBill.year
         return b.monthlyBill.month - a.monthlyBill.month
       })

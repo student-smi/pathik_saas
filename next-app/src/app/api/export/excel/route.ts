@@ -82,9 +82,9 @@ export async function GET(request: Request) {
           house: houseMap[houseId] || {}
         }
       })
-      .sort((a, b) => compareHouseNos(a.house?.houseNo || a.house?.house_no || '', b.house?.houseNo || b.house?.house_no || ''))
+      .sort((a: any, b: any) => compareHouseNos(a.house?.houseNo || a.house?.house_no || '', b.house?.houseNo || b.house?.house_no || ''))
 
-    const rows = billEntries.map(e => ({
+    const rows = billEntries.map((e: any) => ({
       'House No.': e.house?.houseNo || e.house?.house_no || '',
       'H.V': e.hv ?? 0,
       'A.V': e.av ?? '',
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
     const period = `${BILL_PERIOD_MAP[billRow.month] || 'Period'} ${billRow.year}`
 
     const csvHeader = Object.keys(rows[0] || {}).join(',')
-    const csvRows = rows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    const csvRows = rows.map((r: any) => Object.values(r).map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(','))
     const csv = [csvHeader, ...csvRows].join('\n')
     const bom = '\uFEFF'
 

@@ -92,7 +92,7 @@ export async function GET(request: Request) {
           house: houseMap[houseId] || {}
         }
       })
-      .sort((a, b) => compareHouseNos(a.house?.houseNo || a.house?.house_no || '', b.house?.houseNo || b.house?.house_no || ''))
+      .sort((a: any, b: any) => compareHouseNos(a.house?.houseNo || a.house?.house_no || '', b.house?.houseNo || b.house?.house_no || ''))
 
     const BILL_PERIOD_MAP: Record<number, string> = {
       1: 'Jan-Feb', 2: 'Jan-Feb', 3: 'Mar-Apr', 4: 'Mar-Apr',
