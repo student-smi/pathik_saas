@@ -20,7 +20,12 @@ const navItems = [
   { to: '/admin/config',    label: 'Calc Config',    icon: Settings },
 ]
 
-const mobileNavItems = navItems.slice(0, 5)
+const mobileNavItems = [
+  { to: '/admin',           label: 'Dashboard',      icon: LayoutDashboard, end: true },
+  { to: '/admin/bills',     label: 'Bills',          icon: FileText },
+  { to: '/admin/history',   label: 'History',        icon: History },
+  { to: '/admin/houses',    label: 'Houses',         icon: Home },
+]
 
 export default function AdminLayout({
   children,
@@ -103,7 +108,7 @@ export default function AdminLayout({
       </aside>
 
       {drawerOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
+        <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setDrawerOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-primary-900 text-white flex flex-col shadow-2xl">
             <div className="flex items-center justify-between px-4 py-5 border-b border-primary-700">
@@ -160,7 +165,8 @@ export default function AdminLayout({
         <header className="bg-white border-b border-gray-200 h-14 flex items-center gap-3 px-4 shadow-sm flex-shrink-0">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="md:hidden p-1.5 rounded-lg hover:bg-gray-100"
+            className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
+            aria-label="Open Navigation Menu"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -187,10 +193,10 @@ export default function AdminLayout({
                 key={to} href={to}
                 className={
                   `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-medium transition-colors
-                   ${active ? 'text-primary-700' : 'text-gray-400'}`
+                   ${active ? 'text-primary-700 font-semibold' : 'text-gray-500'}`
                 }
               >
-                <div className={`p-1 rounded-lg ${active ? 'bg-primary-100' : ''}`}>
+                <div className={`p-1 rounded-lg ${active ? 'bg-primary-100 text-primary-700' : ''}`}>
                   <Icon className="w-5 h-5" />
                 </div>
                 <span>{label}</span>
@@ -199,7 +205,7 @@ export default function AdminLayout({
           })}
           <button
             onClick={() => setDrawerOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-medium text-gray-400"
+            className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-medium text-gray-500 hover:text-gray-700"
           >
             <div className="p-1 rounded-lg">
               <Menu className="w-5 h-5" />

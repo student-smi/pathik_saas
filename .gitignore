@@ -30,3 +30,7 @@ prisma/migrations/
 # Logs
 *.log
 logs/
+
+# Cloudflare OpenNext
+.open-next/
+.wrangler/

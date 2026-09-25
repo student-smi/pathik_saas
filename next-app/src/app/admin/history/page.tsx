@@ -228,57 +228,80 @@ export default function BillHistory() {
   if (loadingSocieties) return <div className="flex items-center justify-center h-48"><div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full" /></div>
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-5 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Bill History</h1>
-        <p className="text-gray-500 text-sm">All historical bills — edit, delete, or export any bill period</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bill History</h1>
+        <p className="text-gray-500 text-xs sm:text-sm">All historical bills — edit, delete, or export any bill period</p>
       </div>
 
-      <div>
+      <div className="card p-4">
         <label className="label">Select Society</label>
-        <select className="input max-w-xs" value={selectedSociety} onChange={e => setSelectedSociety(e.target.value)}>
+        <select className="input w-full sm:max-w-xs" value={selectedSociety} onChange={e => setSelectedSociety(e.target.value)}>
           {societies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
 
-      {loading && <div className="text-center py-8 text-gray-400">Loading...</div>}
+      {loading && (
+        <div className="flex items-center justify-center py-12 text-gray-400">
+          <div className="animate-spin h-6 w-6 border-3 border-primary-600 border-t-transparent rounded-full mr-2" />
+          <span>Loading history...</span>
+        </div>
+      )}
 
       {!loading && bills.length === 0 && (
         <div className="card text-center py-12">
           <History className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No bills yet for this society.</p>
+          <p className="text-gray-500 text-sm">No bills yet for this society.</p>
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {bills.map(b => (
-          <div key={b.id} className="card flex flex-col md:flex-row md:items-center justify-between py-4 gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div key={b.id} className="card p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-gray-300 transition-colors">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
                 <FileText className="w-5 h-5 text-primary-600" />
               </div>
-              <div>
-                <p className="font-semibold text-gray-900">{getPeriodName(b.month)} {b.year}</p>
-                <p className="text-xs text-gray-500">{b._count?.entries || 0} houses</p>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-gray-900 text-base">{getPeriodName(b.month)} {b.year}</p>
+                  <StatusBadge status={b.status} />
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <span>{b._count?.entries || 0} houses</span>
+                  {b.publishedAt && (
+                    <span>• Published {new Date(b.publishedAt).toLocaleDateString()}</span>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge status={b.status} />
-              {b.publishedAt && (
-                <span className="text-xs text-gray-400 mr-2 hidden sm:inline">
-                  Published {new Date(b.publishedAt).toLocaleDateString()}
-                </span>
-              )}
-              <Link href={`/admin/bills?societyId=${selectedSociety}&year=${b.year}&month=${b.month}`} className="btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1">
+
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 pt-3 md:pt-0 border-t md:border-t-0 border-gray-100">
+              <Link
+                href={`/admin/bills?societyId=${selectedSociety}&year=${b.year}&month=${b.month}`}
+                className="btn-secondary text-xs px-3 py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto"
+              >
                 <Edit className="w-3.5 h-3.5 text-primary-600" /> Edit / View
               </Link>
-              <button onClick={() => handleExportExcel(b)} className="btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1" title="Export Excel">
-                <Download className="w-3.5 h-3.5" /> Excel
+              <button
+                onClick={() => handleExportExcel(b)}
+                className="btn-secondary text-xs px-3 py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                title="Export Excel"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" /> Excel
               </button>
-              <button onClick={() => handleExportPdf(b)} className="btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1" title="Export PDF">
-                <FileText className="w-3.5 h-3.5" /> PDF
+              <button
+                onClick={() => handleExportPdf(b)}
+                className="btn-secondary text-xs px-3 py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                title="Export PDF"
+              >
+                <FileText className="w-3.5 h-3.5 text-rose-600" /> PDF
               </button>
-              <button onClick={() => handleDeleteBill(b)} className="btn-danger text-xs px-2.5 py-1.5 flex items-center gap-1" title="Delete Bill">
+              <button
+                onClick={() => handleDeleteBill(b)}
+                className="btn-danger text-xs px-3 py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                title="Delete Bill"
+              >
                 <Trash2 className="w-3.5 h-3.5" /> Delete
               </button>
             </div>
